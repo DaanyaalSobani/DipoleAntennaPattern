@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Radiation Pattern of a Dipole Antenna</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.js"></script>
+    <style>
+        #slider {
+            width: 80%;
+            margin: 2em auto;
+        }
+        #id{
+            width: 80%;
+            height: 90%;
+        }
+    </style>
+</head>
+<body>
+    <div id="slider"></div>
+    <div id="plot"></div>
+    <script>
+        // Create radiation pattern function
+        function pattern(theta, length) {
+            return Math.pow((Math.cos(Math.PI * length * Math.cos(theta)) - Math.cos(Math.PI*length)) / Math.sin(theta), 2);
+        }
+        function render_plot(length){
+            r = theta.map(theta => phi.map(phi => pattern(theta, length)));
+            x = r.map((ri, i) => ri.map((rj, j) => rj * Math.sin(theta[i]) * Math.cos(phi[j])));
+            y = r.map((ri, i) => ri.map((rj, j) => rj * Math.sin(theta[i]) * Math.sin(phi[j])));
+            z = r.map((ri, i) => ri.map((rj, j) => rj * Math.cos(theta[i])));
+            Plotly.update('plot', { x: [x], y: [y], z: [z] });
+        }
+
+        // Create initial data and layout
+        var length = 0.5;
+        var theta = [];
+        var phi = [];
+        for (var i = 0.0001; i <= Math.PI; i += (Math.PI / 50)) {
+            theta.push(i);
+        }
+        for (var i = 0; i <= 2 * Math.PI; i += 2 * Math.PI / 100) {
+            phi.push(i);
+        }
+        // For each value of theta calculate an array for all the values of phi 
+        var r = theta.map(theta => phi.map(phi => pattern(theta, length)));
+        //Each ri is an array for a particular value for theta and all the values for phi
+        var x = r.map((ri, i) => ri.map((rj, j) => rj * Math.sin(theta[i]) * Math.cos(phi[j])));
+        var y = r.map((ri, i) => ri.map((rj, j) => rj * Math.sin(theta[i]) * Math.sin(phi[j])));
+        var z = r.map((ri, i) => ri.map((rj, j) => rj * Math.cos(theta[i])));
+        
+        var maxR = Math.max(...r.flat());
+        var colorscale = [
+        [0, 'rgb(0, 0, 255)'],
+        [1, 'rgb(255, 0, 0)']        
+        ];
+        var normalizedR = r.map(row => row.map(val => val / maxR));
+        var color = normalizedR.map(row => row.map(val => val * (colorscale.length - 1)));
+
+
+        var data = [{
+            x: x.flat(),
+            y: y.flat(),
+            z: z,
+            type: 'surface',
+            surfacecolor: color,
+            colorscale: colorscale,
+            showscale: false
+        }];
+        var layout = {
+            autosize: true,
+            showlegend: false,
+            pad: {
+                t: 0,  // reduce the padding at the top
+                r: 0,
+                b: 0,
+                l: 0
+            },
+            margin:{
+                t: 0,  // reduce the padding at the top
+                r: 0,
+                b: 0,
+                l: 0
+            },
+            height: window.innerHeight*0.8
+        };
+
+        // Create initial plot
+        Plotly.newPlot('plot', data, layout,{responsive:true});
+
+        // Create slider
+        var slider = document.getElementById('slider');
+        noUiSlider.create(slider, {
+            start: [0.5],
+            range: {
+                'min': [0.1],
+                'max': [10.0]
+            }
+        });
+
+        // Update plot on slide
+        slider.noUiSlider.on('update', function (values, handle) {
+            length = parseFloat(values[handle]);
+            render_plot(length)
+        });
+    </script>
+</body>
+</html>
